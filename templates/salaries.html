@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Salaries - Finance Tracker
+{% endblock %}
+
+{% block content %}
+<style>
+    /* General styles */
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+    /* Content container */
+    .content-container {
+        margin-top: 40px; /* Adjust this value to add space below the header */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    /* Style for the "Edit Salary" button */
+    .edit-salary-btn {
+        align-self: self-end;
+        margin-right: 10px;
+        margin-bottom: 40px;
+    }
+
+    /* Center alignment for the salary section */
+    .salary-section {
+        text-align: center;
+    }
+
+    /* Dropdown options style */
+    .form-select option {
+        font-size: 14px;
+    }
+</style>
+
+<div class="content-container">
+    <!-- Edit Salary Button -->
+    <div class="edit-salary-btn">
+        <button class="btn btn-primary">Edit Salary</button>
+    </div>
+
+    <!-- Enter Your Salary Section -->
+    <div class="salary-section">
+        <h2>Enter Your Salary</h2>
+        <br><br>
+        <input type="text" class="form-control" placeholder="Enter Salary">
+        <br><br>
+        <div class="salary_1">
+            <label for="salary_type" class="form-label">Salary Type:</label>
+            <select id="salary_type" name="salary_type" class="form-select" required>
+                <option value="70/30">70/30</option>
+                <option value="50/50">50/50</option>
+            </select>
+            <br><br>
+            <button class="btn btn-primary">Submit</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
