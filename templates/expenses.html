@@ -44,7 +44,7 @@ Expenses - Finance Tracker
     </div>
     <div class="col-md-6 text-end">
         <button class="btn btn-primary" onclick="openPopup()">Add Transaction</button>
-        <button class="btn btn-success" onclick="downloadCSV()"><i class="fa-solid fa-file-arrow-down"></i> CSV</button>
+        
     </div>
     
 </div>
@@ -142,20 +142,7 @@ Expenses - Finance Tracker
         document.getElementById("popup").style.display = "none";
     }
 
-// Function to download the transaction table as a CSV file
-function downloadCSV() {
-    // Get all table rows except the header
-    const rows = document.querySelectorAll('table tbody tr');
 
-    // Prepare CSV content
-    let csvContent = 'Date,Category,Amount,Payment Method,Notes\n';
-
-    // Iterate over table rows and append data to CSV content
-    rows.forEach(row => {
-        const columns = row.querySelectorAll('td');
-        const rowData = Array.from(columns).map(column => column.textContent.replace(/\n/g, '').replace('₹', '')); // Remove newline characters and INR symbol
-        csvContent += rowData.join(',') + '\n';
-    });
 
     // Create a Blob object containing the CSV content
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -163,7 +150,6 @@ function downloadCSV() {
     // Create a temporary anchor element
     const a = document.createElement('a');
     a.href = window.URL.createObjectURL(blob);
-    a.download = 'transactions.csv';
 
     // Append the anchor element to the document body and trigger a click event
     document.body.appendChild(a);
@@ -171,7 +157,7 @@ function downloadCSV() {
 
     // Remove the anchor element from the document body
     document.body.removeChild(a);
-}
+
 
 </script>
 {% endblock %}
