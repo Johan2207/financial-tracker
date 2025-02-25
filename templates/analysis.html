@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Analysis - Trackonomy{% endblock %}
+
+{% block content %}
+
+<style>
+    .container {
+        width: 100%;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .card {
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-header {
+        background-color: #E3F0AF;
+        padding: 10px;
+        font-weight: bold;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 10px;
+    }
+
+    .chart-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 15px;
+    }
+    canvas#expensePieChart {
+    max-width: 250px;
+    max-height: 250px;
+}
+
+
+</style>
+
+<!-- Expense by Category -->
+<div class="card mb-4">
+    <div class="card-header">Expense by Category</div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analysis') }}">
+            <label for="category">Select Category:</label>
+            <select name="category" id="category" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for category in categories %}
+                    <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>
+                        {{ category }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label for="time_range">Select Time Range:</label>
+            <select name="time_range" id="time_range" onchange="this.form.submit()">
+                <option value="weekly" {% if time_range == 'weekly' %}selected{% endif %}>This Week</option>
+                <option value="monthly" {% if time_range == 'monthly' %}selected{% endif %}>This Month</option>
+                <option value="quarterly" {% if time_range == 'quarterly' %}selected{% endif %}>This Quarter</option>
+                <option value="yearly" {% if time_range == 'yearly' %}selected{% endif %}>This Year</option>
+                <option value="older" {% if time_range == 'older' %}selected{% endif %}>Previous Months/Years</option>
+            </select>
+        </form>
+
+        <h5 class="mt-3">Total Expenses: ₹{{ expense_by_category_total }}</h5>
+    </div>
+</div>
+
+<!-- Expense Breakdown (Pie Chart) -->
+<div class="card mb-4">
+    <div class="card-header">Expense Breakdown</div>
+    <div class="card-body">
+        <form method="GET" action="{{ url_for('analysis') }}">
+            <label for="month">Select Month:</label>
+            <select name="month" id="month" onchange="this.form.submit()">
+                {% for key, value in months.items() %}
+                    <option value="{{ key }}" {% if key == selected_month %}selected{% endif %}>{{ value }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <div class="chart-container">
+            <canvas id="expensePieChart"></canvas>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- Chart Script -->
+<script>
+    var expenseBreakdownData = JSON.parse('{{ expense_breakdown | tojson }}');
+    var labels = Object.keys(expenseBreakdownData);
+    var dataValues = Object.values(expenseBreakdownData);
+
+    var ctx = document.getElementById('expensePieChart').getContext('2d');
+var pieChart = new Chart(ctx, {
+    type: 'pie',
+    data: {
+        labels: labels,
+        datasets: [{
+            data: dataValues,
+            backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FFC107', '#9C27B0']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+    }
+});
+
+</script>
+
+{% endblock %}

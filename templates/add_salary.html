@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Salaries - Trackonomy
+{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="text-center text-success">Add Salary</h1>
+    <form action="{{ url_for('add_salary') }}" method="POST" class="mt-4 shadow-sm p-4 bg-white rounded">
+        <div class="mb-3">
+            <label for="amount" class="form-label">Salary Amount</label>
+            <input type="number" id="amount" name="amount" class="form-control" placeholder="Enter salary amount" required oninput="calculateSavings()">
+        </div>
+        <div class="mb-3">
+            <label for="savings_rate" class="form-label">Savings Rate (%)</label>
+            <select id="savings_rate" name="savings_rate" class="form-select" required onchange="toggleCustomSavings()">
+                <option value="0">No Savings (0%)</option>
+                <option value="30">30%</option>
+                <option value="40">40%</option>
+                <option value="50">50%</option>
+                <option value="custom">Custom</option>
+            </select>
+            <input type="number" id="custom_savings_rate" name="custom_savings_rate" class="form-control mt-2" 
+                   placeholder="Enter custom savings rate (%)" style="display: none;" oninput="calculateSavings()">
+        </div>
+        <p class="fw-bold">Calculated Savings Amount: ₹<span id="savings_amount">0</span></p>
+        <button type="submit" class="btn btn-success w-100">Add Salary</button>
+    </form>
+    <div class="text-center mt-3">
+        <a href="{{ url_for('salaries') }}" class="text-success text-decoration-none">Back to Salaries</a>
+    </div>
+</div>
+
+<script>
+function toggleCustomSavings() {
+    let savingsRate = document.getElementById("savings_rate").value;
+    let customInput = document.getElementById("custom_savings_rate");
+
+    if (savingsRate === "custom") {
+        customInput.style.display = "block";
+        customInput.required = true;
+    } else {
+        customInput.style.display = "none";
+        customInput.required = false;
+        calculateSavings();
+    }
+}
+
+function calculateSavings() {
+    let salary = document.getElementById("amount").value;
+    let savingsRate = document.getElementById("savings_rate").value;
+    let customSavings = document.getElementById("custom_savings_rate").value;
+
+    let rate = savingsRate === "custom" ? customSavings : savingsRate;
+    
+    if (salary && rate) {
+        let savingsAmount = (parseFloat(salary) * parseFloat(rate)) / 100;
+        document.getElementById("savings_amount").innerText = savingsAmount.toFixed(2);
+    } else {
+        document.getElementById("savings_amount").innerText = "0";
+    }
+}
+</script>
+
+{% endblock %}
