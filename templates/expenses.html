@@ -65,11 +65,11 @@ Expenses - Finance Tracker
             {% if expenses %}
             {% for expense in expenses %}
                 <tr>
-                    <td>{{ expense[4] }}</td> <!-- Assuming 'date' is the 5th column -->
-                    <td>{{ expense[3] }}</td> <!-- Assuming 'category' is the 4th column -->
-                    <td>₹{{ expense[2] }}</td> <!-- Assuming 'amount' is the 3rd column -->
-                    <td>{{ expense[6] }}</td> <!-- Assuming 'payment_method' is the 7th column -->
-                    <td>{{ expense[5] }}</td> <!-- Assuming 'description' is the 6th column -->
+                    <td>{{ expense[4] }}</td> 
+                    <td>{{ expense[3] }}</td> 
+                    <td>₹{{ expense[2] }}</td> 
+                    <td>{{ expense[6] }}</td> 
+                    <td>{{ expense[5] }}</td> 
                     <td>
                         <form action="{{ url_for('delete_transaction', transaction_id=expense[0]) }}" method="post">
                             <button type="submit" class="btn btn-danger"><i class="fas fa-trash-alt"></i></button>
