@@ -25,6 +25,24 @@ Edit Salary - Finance Tracker
             <input type="number" id="custom_savings_rate" name="custom_savings_rate" class="form-control mt-2" 
                    placeholder="Enter custom savings rate (%)" style="display: none;" value="{% if salary[3] not in [0, 30, 40, 50] %}{{ salary[3] }}{% endif %}" oninput="calculateSavings()">       
         </div>
+        <div class="mb-3">
+            <label for="salary_type" class="form-label">Salary Type</label>
+            <div>
+                <input type="radio" id="primary_salary" name="salary_type" value="primary" required 
+                    {% if salary[4] == 'primary' %}checked{% endif %}
+                    {% if primary_exists and salary[4] != 'primary' %}disabled{% endif %}>
+                <label for="primary_salary">Primary</label>
+            </div>
+            <div>
+                <input type="radio" id="secondary_salary" name="salary_type" value="secondary" required
+                    {% if salary[4] == 'secondary' %}checked{% endif %}>
+                <label for="secondary_salary">Secondary</label>
+            </div>
+            {% if primary_exists and salary[4] != 'primary' %}
+                <p class="text-danger small">A primary salary already exists. You cannot set this as primary.</p>
+            {% endif %}
+        </div>
+        
         <p class="fw-bold">Calculated Savings Amount: ₹<span id="savings_amount">0</span></p>
         <button type="submit" class="btn btn-success w-100">Update Salary</button>
     </form>
@@ -69,5 +87,19 @@ document.addEventListener("DOMContentLoaded", function() {
     calculateSavings();
 });
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let primaryExists = JSON.parse('{{ primary_exists | tojson | safe }}');
+        let primaryRadio = document.getElementById("primary_salary");
+
+        if (primaryExists) {
+            primaryRadio.disabled = true;
+            let warningDiv = document.createElement("div");
+            //warningDiv.innerHTML = '<p style="color: red; font-size: 14px;">You already have a primary salary. Only one primary salary is allowed.</p>';
+            primaryRadio.parentNode.appendChild(warningDiv);
+        }
+    });
+</script>
+
 
 {% endblock %}

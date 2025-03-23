@@ -13,6 +13,21 @@ Salaries - Trackonomy
             <input type="number" id="amount" name="amount" class="form-control" placeholder="Enter salary amount" required oninput="calculateSavings()">
         </div>
         <div class="mb-3">
+            <label for="salary_type" class="form-label">Salary Type</label>
+            <div>
+                <input type="radio" id="primary_salary" name="salary_type" value="primary" required {% if primary_exists %}disabled{% endif %}>
+                <label for="primary_salary">Primary</label>
+            </div>
+            <div>
+                <input type="radio" id="secondary_salary" name="salary_type" value="secondary" required checked>
+                <label for="secondary_salary">Secondary</label>
+            </div>
+            {% if primary_exists %}
+                <p class="text-danger small">A primary salary already exists. You can only add secondary salaries.</p>
+            {% endif %}
+        </div>
+        
+        <div class="mb-3">
             <label for="savings_rate" class="form-label">Savings Rate (%)</label>
             <select id="savings_rate" name="savings_rate" class="form-select" required onchange="toggleCustomSavings()">
                 <option value="0">No Savings (0%)</option>
@@ -25,6 +40,25 @@ Salaries - Trackonomy
                    placeholder="Enter custom savings rate (%)" style="display: none;" oninput="calculateSavings()">
         </div>
         <p class="fw-bold">Calculated Savings Amount: ₹<span id="savings_amount">0</span></p>
+        <p class="text-warning small">* This is only a recommendation based on the selected percentage.</p>
+        
+        <div id="investment_table" class="mt-3" style="display: none;">
+            <h5 class="text-success">Investment Recommendation</h5>
+            <table class="table table-bordered">
+                <thead>
+                    <tr>
+                        <th>Fund Type</th>
+                        <th>Allocation</th>
+                        <th>Amount (₹)</th>
+                        <th>Risk Level</th>
+                    </tr>
+                </thead>
+                <tbody id="investment_body">
+                    <!-- Investment rows will be inserted here -->
+                </tbody>
+            </table>
+        </div>
+
         <button type="submit" class="btn btn-success w-100">Add Salary</button>
     </form>
     <div class="text-center mt-3">
@@ -54,13 +88,63 @@ function calculateSavings() {
 
     let rate = savingsRate === "custom" ? customSavings : savingsRate;
     
-    if (salary && rate) {
+    if (salary && rate && rate !== "0") {
         let savingsAmount = (parseFloat(salary) * parseFloat(rate)) / 100;
         document.getElementById("savings_amount").innerText = savingsAmount.toFixed(2);
+        generateInvestmentTable(savingsAmount);
     } else {
         document.getElementById("savings_amount").innerText = "0";
+        document.getElementById("investment_table").style.display = "none";
     }
 }
+
+function generateInvestmentTable(savingsAmount) {
+    if (savingsAmount <= 0) {
+        document.getElementById("investment_table").style.display = "none";
+        return;
+    }
+
+    let investmentBody = document.getElementById("investment_body");
+    investmentBody.innerHTML = ""; // Clear previous rows
+
+    let recommendations = [
+        { type: "Large-Cap Fund", allocation: 40, risk: "Moderate" },
+        { type: "Mid-Cap Fund", allocation: 20, risk: "High" },
+        { type: "Small-Cap Fund", allocation: 10, risk: "Very High" },
+        { type: "Debt Fund", allocation: 20, risk: "Low" },
+        { type: "ELSS (Tax Saving)", allocation: 10, risk: "Moderate-High" }
+    ];
+
+    recommendations.forEach(recommendation => {
+        let amount = (savingsAmount * recommendation.allocation) / 100;
+        let row = `
+            <tr>
+                <td>${recommendation.type}</td>
+                <td>${recommendation.allocation}%</td>
+                <td>₹${amount.toFixed(2)}</td>
+                <td>${recommendation.risk}</td>
+            </tr>
+        `;
+        investmentBody.innerHTML += row;
+    });
+
+    document.getElementById("investment_table").style.display = "block";
+}
 </script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let primaryExists = JSON.parse('{{ primary_exists | tojson | safe }}');
+        let primaryRadio = document.getElementById("primary_salary");
+
+        if (primaryExists) {
+            primaryRadio.disabled = true;
+            let warningDiv = document.createElement("div");
+            //warningDiv.innerHTML = '<p style="color: red; font-size: 14px;">You already have a primary salary. Only one primary salary is allowed.</p>';
+            primaryRadio.parentNode.appendChild(warningDiv);
+        }
+    });
+</script>
+
+
 
 {% endblock %}

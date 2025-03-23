@@ -11,27 +11,29 @@ Expenses - Trackonomy
 <style>
     /* Popup window styling */
     .popup {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.5);
-        z-index: 9999;
-    }
+    display: none;  /* Ensures it starts hidden */
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    background-color: rgba(0, 0, 0, 0.5)
+}
 
-    .popup-content {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background-color: #FBF6E9;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-        width: 400px;
-    }
+
+.popup-content {
+    max-height: 80vh; /* This shouldn't force visibility */
+    overflow-y: auto;
+    background: #FBF6E9;
+    padding: 20px;
+    width: 400px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    position: relative;
+}
+
 
     .close {
         position: absolute;
@@ -82,6 +84,7 @@ Expenses - Trackonomy
     border: none;
     cursor: default;
     }
+    
 
 </style>
 
@@ -196,11 +199,21 @@ Expenses - Trackonomy
     <div class="popup-content">
         <span class="close" onclick="closePopup()">&times;</span>
         <h4 class="text-center mb-3">Add New Transaction</h4>
-        <form action="{{ url_for('add_transaction') }}" method="post">
+        <form action="{{ url_for('add_transaction') }}" method="post" enctype="multipart/form-data">
             <div class="mb-3">
                 <label for="date" class="form-label">Date:</label>
                 <input type="date" id="date" name="date" class="form-control" required>
             </div>
+            
+            <div class="mb-3">
+                <label for="salary" class="form-label">Deduct From Salary:</label>
+                <select id="salary" name="salary_id" class="form-select" required>
+                    {% for salary in salaries %}
+                        <option value="{{ salary[0] }}">₹{{ salary[1] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <div class="mb-3">
                 <label for="category" class="form-label">Category:</label>
                 <select id="category" name="category" class="form-select" required>
@@ -221,10 +234,17 @@ Expenses - Trackonomy
                     <option value="Others">Others</option>
                 </select>
             </div>
+
+            <div class="mb-3">
+                <label for="receipt" class="form-label">Upload Receipt (Optional):</label>
+                <input type="file" id="receipt" name="receipt" class="form-control">
+            </div>
+            
             <div class="mb-3">
                 <label for="amount" class="form-label">Amount:</label>
                 <input type="number" id="amount" name="amount" class="form-control" required>
             </div>
+
             <div class="mb-3">
                 <label for="payment_method" class="form-label">Payment Method:</label>
                 <select id="payment_method" name="payment_method" class="form-select" required>
@@ -232,14 +252,80 @@ Expenses - Trackonomy
                     <option value="Cash">Cash</option>
                 </select>
             </div>
+
+            <div class="mb-3">
+                <label for="recurring" class="form-label">Recurring Expense:</label>
+                <select id="recurring" name="recurring" class="form-select" required>
+                    <option value="No">No</option>
+                    <option value="Yes">Yes</option>
+                </select>
+            </div>
+
             <div class="mb-3">
                 <label for="notes" class="form-label">Notes:</label>
                 <textarea id="notes" name="notes" class="form-control"></textarea>
             </div>
+
             <button type="submit" class="btn btn-primary w-100">Add Transaction</button>
         </form>
     </div>
 </div>
+
+<script>
+document.getElementById("receipt").addEventListener("change", function(event) {
+    let file = event.target.files[0];
+
+    if (file) {
+        let formData = new FormData();
+        formData.append("file", file);
+
+        fetch("{{ url_for('upload_receipt') }}", {
+            method: "POST",
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.amount) {
+                document.getElementById("amount").value = data.amount;
+            }
+            if (data.date) {
+                let formattedDate = formatDateForInput(data.date);
+                document.getElementById("date").value = formattedDate;
+            }
+        })
+        .catch(error => console.error("Error:", error));
+    }
+
+});
+
+// Function to convert date to YYYY-MM-DD format
+function formatDateForInput(dateString) {
+    if (!dateString || dateString.toLowerCase() === "not found") {
+        return "";  // Return empty if no valid date found
+    }
+
+    let dateParts = dateString.match(/\d+/g);  // Extract numeric parts from date
+    if (!dateParts || dateParts.length < 3) {
+        return "";  // Invalid date
+    }
+
+    let year, month, day;
+    
+    if (dateParts[2].length === 2) {
+        year = "20" + dateParts[2];  // Convert YY to YYYY
+    } else {
+        year = dateParts[2];
+    }
+
+    month = dateParts[0].padStart(2, "0");  // Ensure two digits
+    day = dateParts[1].padStart(2, "0");
+
+    return `${year}-${month}-${day}`;  // Convert to YYYY-MM-DD
+}
+
+</script>
+
+
 
 <script>
     // Open Popup
