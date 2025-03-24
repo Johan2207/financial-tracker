@@ -93,9 +93,9 @@ def add_salary():
                 if not custom_savings_rate:
                     flash('Please enter a custom savings rate.', 'error')
                     return redirect(url_for('add_salary'))
-                savings = float(custom_savings_rate)
+                savings = int(custom_savings_rate)
             else:
-                savings = float(savings_rate)
+                savings = int(savings_rate)
 
             if salary_type not in ["Primary", "Secondary"]:
                 flash('Invalid salary type.', 'error')
@@ -154,7 +154,18 @@ def edit_salary(salary_id):
     if request.method == 'POST':
         try:
             amount = request.form['amount']
-            savings = request.form['savings']
+            savings_rate = request.form['savings']  # This might be "custom"
+            custom_savings_rate = request.form.get('custom_savings_rate')  
+
+            # Convert savings correctly
+            if savings_rate == "custom":
+                if not custom_savings_rate:
+                    flash('Please enter a custom savings rate.', 'error')
+                    return redirect(url_for('edit_salary', salary_id=salary_id))
+                savings = int(custom_savings_rate)
+            else:
+                savings = int(savings_rate)
+
             salary_type = request.form['salary_type'].capitalize()
 
             if salary_type not in ["Primary", "Secondary"]:
@@ -559,18 +570,12 @@ def analysis():
 
     # Fetch user's savings percentage
     c.execute("SELECT savings FROM salaries WHERE user_id = ?", (user_id,))
-    result = c.fetchone()
+    row = c.fetchone()
+    savings_percentage = row[0] if row else 0  # Use 0 if row is None
 
-    if result:
-        try:
-            savings_percentage = int(result[0])  # Convert only if it's a valid number
-        except ValueError:
-            savings_percentage = 0  # Default to 0 if it's 'custom' or any non-numeric value
-    else:
-        savings_percentage = 0
 
     # Calculate required savings
-    required_savings = (total_salary * savings_percentage) / 100
+    required_savings = (total_salary * int(savings_percentage)) / 100
 
     # Calculate remaining salary after expenses
     remaining_salary = total_salary - total_expenses
@@ -579,6 +584,7 @@ def analysis():
     savings_status = ((remaining_salary - required_savings) / required_savings) * 100 if required_savings > 0 else 0
 
     conn.close()
+
 
     return render_template(
         'analysis.html',
@@ -598,9 +604,6 @@ def analysis():
         selected_savings_month=selected_savings_month,
         
     )
-
-
-
 
 
 # New API route to fetch expenses dynamically based on selected month
@@ -750,7 +753,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt())
+        password = bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
