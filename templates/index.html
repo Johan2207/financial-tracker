@@ -5,15 +5,25 @@ Home - Trackonomy
 {% endblock %}
 
 {% block content %}
-<!-- Include Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Include Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     a {
-    text-decoration: none;
-}
-
+        text-decoration: none;
+    }
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        display: block;
+    }
+    .card-body {
+        overflow: hidden;
+    }
+    @media (max-width: 768px) {
+        .col-md-6 {
+            width: 100%;
+        }
+    }
 </style>
 
 <div class="row text-center mt-4">
@@ -33,37 +43,28 @@ Home - Trackonomy
             </div>
         </div>
     </div>
-    
     <div class="col-md-4">
         <div class="card shadow-sm">
             <div class="card-body">
                 <h5 class="card-title">Most Recent Expense</h5>
-                <h6 class="card-subtitle mb-2 text-muted">{{ recent_category }} - ₹{{ recent_amount }}  {{recent_date}}</h6>
+                <h6 class="card-subtitle mb-2 text-muted">{{ recent_category }} - ₹{{ recent_amount }}  {{ recent_date }}</h6>
             </div>
         </div>
     </div>
-    
-    </div>
 </div>
 
-    
 <div class="row mt-4 d-flex justify-content-center">
     <div class="col-md-6">
         <div class="card shadow-sm">
-            <div class="card-header bg-success text-white text-center">
-                Amount Spent Daily
-            </div>
+            <div class="card-header bg-success text-white text-center">Amount Spent Daily</div>
             <div class="card-body text-center">
                 <canvas id="dailySpendingChart"></canvas>
             </div>
         </div>
     </div>
-
     <div class="col-md-6">
         <div class="card shadow-sm">
-            <div class="card-header bg-success text-white text-center">
-                Expenses by Category
-            </div>
+            <div class="card-header bg-success text-white text-center">Expenses by Category</div>
             <div class="card-body text-center">
                 <label for="start_date">Start Date:</label>
                 <input type="date" id="start_date">
@@ -74,95 +75,55 @@ Home - Trackonomy
         </div>
     </div>
 </div>
-    <script>
-        let expenseCategoryChart = null; // Store chart instance globally
+
+<script>
+    let expenseCategoryChart = null;
     
-        function fetchExpenseCategoryData() {
-            const startDate = document.getElementById("start_date").value;
-            const endDate = document.getElementById("end_date").value;
-    
-            fetch(`/expense_category_data?start_date=${startDate}&end_date=${endDate}`)
-                .then(response => response.json())
-                .then(data => {
-                    const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
-    
-                    // Destroy existing chart if it exists
-                    if (expenseCategoryChart) {
-                        expenseCategoryChart.destroy();
-                    }
-    
-                    // Create a new chart instance
-                    expenseCategoryChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: data.labels,
-                            datasets: [{
-                                label: 'Total Spent',
-                                data: data.amounts,
-                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                                borderColor: 'rgba(255, 99, 132, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            scales: {
-                                y: {
-                                    beginAtZero: true
+    function fetchExpenseCategoryData() {
+        const startDate = document.getElementById("start_date").value;
+        const endDate = document.getElementById("end_date").value;
+
+        fetch(`/expense_category_data?start_date=${startDate}&end_date=${endDate}`)
+            .then(response => response.json())
+            .then(data => {
+                const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
+                if (expenseCategoryChart) expenseCategoryChart.destroy();
+                expenseCategoryChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels,
+                        datasets: [{
+                            label: 'Total Spent (₹)',
+                            data: data.amounts,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Expense Categories'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'Amount (₹)'
+                                },
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => '₹' + value
                                 }
                             }
                         }
-                    });
+                    }
                 });
-        }
-    
-        // Function to set the default date range to the current month
-        function setDefaultDateRange() {
-            const today = new Date();
-            const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-            const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
-            document.getElementById("start_date").value = firstDay.toISOString().split('T')[0];
-            document.getElementById("end_date").value = lastDay.toISOString().split('T')[0];
-    
-            // Fetch data for the default range
-            fetchExpenseCategoryData();
-        }
-    
-        // Auto-fetch data when dates are changed
-        document.getElementById("start_date").addEventListener("change", fetchExpenseCategoryData);
-        document.getElementById("end_date").addEventListener("change", fetchExpenseCategoryData);
-    
-        // Set default date range on page load
-        document.addEventListener("DOMContentLoaded", setDefaultDateRange);
-    </script>
-    
-    
-</div>
-
-<!-- Adjust Chart Size and Remove Scrollbars -->
-<style>
-    canvas {
-        max-width: 100% !important; /* Make sure it doesn't overflow */
-        height: auto !important;  /* Keep proportional height */
-        display: block; /* Prevent inline scrollbars */
+            });
     }
 
-    .card-body {
-        overflow: hidden; /* Hide scrollbars */
-    }
-
-    /* Ensure both charts are aligned and responsive */
-    @media (max-width: 768px) {
-        .col-md-6 {
-            width: 100%; /* Make them full width on smaller screens */
-        }
-    }
-</style>
-
-
-<!-- Fetch and Render Charts -->
-<script>
-    // Function to fetch and render daily spending chart
     function fetchDailySpendingData() {
         fetch('/daily_spending_data')
             .then(response => response.json())
@@ -173,7 +134,7 @@ Home - Trackonomy
                     data: {
                         labels: data.labels,
                         datasets: [{
-                            label: 'Amount Spent',
+                            label: 'Amount Spent (₹)',
                             data: data.amounts,
                             backgroundColor: 'rgba(75, 192, 192, 0.2)',
                             borderColor: 'rgba(75, 192, 192, 1)',
@@ -182,8 +143,21 @@ Home - Trackonomy
                     },
                     options: {
                         scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'Date'
+                                }
+                            },
                             y: {
-                                beginAtZero: true
+                                title: {
+                                    display: true,
+                                    text: 'Amount (₹)'
+                                },
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: value => '₹' + value
+                                }
                             }
                         }
                     }
@@ -191,120 +165,20 @@ Home - Trackonomy
             });
     }
 
-    // Function to fetch and render monthly spending chart
-    function fetchMonthlySpendingData() {
-        fetch('/monthly_spending_data')
-            .then(response => response.json())
-            .then(data => {
-                const ctx = document.getElementById('monthlySpendingChart').getContext('2d');
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.labels,
-                        datasets: [{
-                            label: 'Amount Spent',
-                            data: data.amounts,
-                            backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                            borderColor: 'rgba(153, 102, 255, 1)',
-                            borderWidth: 2
-                        }]
-                    },
-                    options: {
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            });
+    function setDefaultDateRange() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        const lastDay = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        document.getElementById("start_date").value = firstDay.toISOString().split('T')[0];
+        document.getElementById("end_date").value = lastDay.toISOString().split('T')[0];
+        fetchExpenseCategoryData();
     }
 
-    // Initialize Charts on Page Load
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener("DOMContentLoaded", () => {
+        setDefaultDateRange();
         fetchDailySpendingData();
-        fetchMonthlySpendingData();
     });
-    function fetchExpenseCategoryData() {
-    const startDate = document.getElementById("start_date").value;
-    const endDate = document.getElementById("end_date").value;
-
-    fetch(`/expense_category_data?start_date=${startDate}&end_date=${endDate}`)
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('expenseCategoryChart').getContext('2d');
-
-            // Shuffle the labels and amounts randomly
-            let shuffledIndexes = data.labels.map((_, i) => i).sort(() => Math.random() - 0.5);
-            let shuffledLabels = shuffledIndexes.map(i => data.labels[i]);
-            let shuffledAmounts = shuffledIndexes.map(i => data.amounts[i]);
-
-            // Destroy existing chart if it exists
-            if (expenseCategoryChart) {
-                expenseCategoryChart.destroy();
-            }
-
-            // Create a new chart instance
-            expenseCategoryChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: shuffledLabels,
-                    datasets: [{
-                        label: 'Total Spent (₹)',
-                        data: shuffledAmounts,
-                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₹' + value; // Add ₹ symbol
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-}
-
-function fetchDailySpendingData() {
-    fetch('/daily_spending_data')
-        .then(response => response.json())
-        .then(data => {
-            const ctx = document.getElementById('dailySpendingChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: data.labels,
-                    datasets: [{
-                        label: 'Amount Spent (₹)',
-                        data: data.amounts,
-                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return '₹' + value; // Add ₹ symbol
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        });
-}
-
+    document.getElementById("start_date").addEventListener("change", fetchExpenseCategoryData);
+    document.getElementById("end_date").addEventListener("change", fetchExpenseCategoryData);
 </script>
 {% endblock %}

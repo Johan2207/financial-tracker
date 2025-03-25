@@ -753,7 +753,7 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         email = request.form['email']
-        password = bcrypt.hashpw(request.form['password'].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        password = request.form['password']
 
         conn = sqlite3.connect(DATABASE)
         c = conn.cursor()
