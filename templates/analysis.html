@@ -51,9 +51,10 @@
 <div class="card mb-4">
     <div class="card-header">Expense by Category</div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('analysis') }}">
+        <form id="categoryForm" method="GET" action="{{ url_for('analysis') }}">
+            <input type="hidden" name="form_type" value="category">
             <label for="category">Select Category:</label>
-            <select name="category" id="category" onchange="this.form.submit()">
+            <select name="category" id="category" onchange="document.getElementById('categoryForm').submit()">
                 <option value="">All Categories</option>
                 {% for category in categories %}
                     <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>
@@ -63,7 +64,7 @@
             </select>
 
             <label for="time_range">Select Time Range:</label>
-            <select name="time_range" id="time_range" onchange="this.form.submit()">
+            <select name="time_range" id="time_range" onchange="document.getElementById('categoryForm').submit()">
                 <option value="weekly" {% if time_range == 'weekly' %}selected{% endif %}>This Week</option>
                 <option value="monthly" {% if time_range == 'monthly' %}selected{% endif %}>This Month</option>
                 <option value="quarterly" {% if time_range == 'quarterly' %}selected{% endif %}>This Quarter</option>
@@ -80,9 +81,10 @@
 <div class="card mb-4">
     <div class="card-header">Expense Breakdown</div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('analysis') }}">
+        <form id="pieChartForm" method="GET" action="{{ url_for('analysis') }}">
+            <input type="hidden" name="form_type" value="piechart">
             <label for="month">Select Month:</label>
-            <select name="month" id="month" onchange="this.form.submit()">
+            <select name="month" id="month" onchange="updatePieChart()">
                 {% for key, value in months.items() %}
                     <option value="{{ key }}" {% if key == selected_month %}selected{% endif %}>{{ value }}</option>
                 {% endfor %}
@@ -99,16 +101,17 @@
 <div class="card mb-4">
     <div class="card-header">Savings Analysis</div>
     <div class="card-body">
-        <form method="GET" action="{{ url_for('analysis') }}">
+        <form id="savingsForm" method="GET" action="{{ url_for('analysis') }}">
+            <input type="hidden" name="form_type" value="savings">
             <label for="savings_month">Select Month:</label>
-            <select name="savings_month" id="savings_month" onchange="this.form.submit()">
+            <select name="savings_month" id="savings_month" onchange="document.getElementById('savingsForm').submit()">
                 {% for key, value in months.items() %}
                     <option value="{{ key }}" {% if key == selected_savings_month %}selected{% endif %}>{{ value }}</option>
                 {% endfor %}
             </select>
 
             <label for="salary_filter">Select Salary:</label>
-            <select name="salary_filter" id="salary_filter" onchange="this.form.submit()">
+            <select name="salary_filter" id="salary_filter" onchange="document.getElementById('savingsForm').submit()">
                 <option value="all" {% if selected_salary == 'all' %}selected{% endif %}>All Salaries</option>
                 {% for salary in salaries %}
                     <option value="{{ salary }}" {% if salary == selected_salary %}selected{% endif %}>{{ salary }}</option>
@@ -126,28 +129,51 @@
     </div>
 </div>
 
-
 <!-- Chart Script -->
 <script>
-    var expenseBreakdownData = JSON.parse('{{ expense_breakdown | tojson }}');
-    var labels = Object.keys(expenseBreakdownData);
-    var dataValues = Object.values(expenseBreakdownData);
+    var pieChart; // Global variable to store chart instance
 
-    var ctx = document.getElementById('expensePieChart').getContext('2d');
-    var pieChart = new Chart(ctx, {
-        type: 'pie',
-        data: {
-            labels: labels,
-            datasets: [{
-                data: dataValues,
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FFC107', '#9C27B0']
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-        }
-    });
+    function initPieChart() {
+        var ctx = document.getElementById('expensePieChart').getContext('2d');
+        var expenseBreakdownData = JSON.parse('{{ expense_breakdown | tojson }}');
+        var labels = Object.keys(expenseBreakdownData);
+        var dataValues = Object.values(expenseBreakdownData);
+
+        pieChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4CAF50', '#FFC107', '#9C27B0']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+            }
+        });
+    }
+
+    function updatePieChart() {
+        var selectedMonth = document.getElementById('month').value;
+        
+        fetch(`/get_expense_data?month=${selectedMonth}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update chart data
+                pieChart.data.labels = Object.keys(data);
+                pieChart.data.datasets[0].data = Object.values(data);
+                pieChart.update();
+                
+                // Update form submission
+                document.getElementById('month').value = selectedMonth;
+                document.getElementById('pieChartForm').submit();
+            });
+    }
+
+    // Initialize chart when page loads
+    document.addEventListener('DOMContentLoaded', initPieChart);
 </script>
 
 {% endblock %}

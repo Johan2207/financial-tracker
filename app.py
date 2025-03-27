@@ -1,10 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from datetime import datetime
 import sqlite3
-import bcrypt
 
 app = Flask(__name__)
-app.secret_key = 'your_secret_key'
+app.secret_key = 'secret_key'
 
 DATABASE = 'finance_tracker.db'
 
@@ -352,7 +351,7 @@ def add_recurring_expenses():
 
         # Convert `original_date` to a `date` object
         original_date = date.fromisoformat(original_date)
-        expense_day = original_date.day  # The day the recurring expense should be added
+        expense_day = original_date.day  
 
         # Determine the last recorded month
         if last_added is None:
@@ -388,7 +387,6 @@ def add_recurring_expenses():
                     VALUES (?, ?, ?, ?, ?, ?, 1, ?)
                 """, (user_id, new_expense_date.strftime("%Y-%m-%d"), category, amount, payment_method, description, new_expense_date.strftime("%Y-%m-%d")))
 
-        #  **NEW FIX: Ensure the current month is added**
         try:
             current_month_expense_date = current_month_start.replace(day=expense_day)
         except ValueError:  # Handle cases like Feb 30 → Feb 28
@@ -503,27 +501,24 @@ from datetime import datetime
 from flask import Flask, render_template, request, session, redirect, url_for
 import sqlite3
 
-@app.route('/analysis', methods=['GET'], endpoint='analysis')
+@app.route('/analysis', methods=['GET'])
 def analysis():
     user_id = session.get('user_id')
-
     if not user_id:
-        return redirect(url_for('login'))  # Redirect if user is not logged in
-
-    print(f"User ID from session in analysis page: {user_id}")  # Debugging
+        return redirect(url_for('login'))
 
     conn = sqlite3.connect(DATABASE)
     c = conn.cursor()
 
-    # Get selected filters
-    selected_category = request.args.get('category', None)
-    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))  # Default: Current month
-    time_range = request.args.get('time_range', 'monthly')  # Default: Monthly
-    selected_savings_month = request.args.get('savings_month', selected_month)  # Default: Current month
-    selected_salary = request.args.get('salary_filter', 'all')  # Default: All Salaries
+    # Determine which form was submitted
+    form_type = request.args.get('form_type', None)
 
-    # Define date filters
-    month_filter = "strftime('%Y-%m', date) = ?"
+    # Initialize all filter values with defaults
+    selected_category = request.args.get('category', None)
+    selected_month = request.args.get('month', datetime.now().strftime('%Y-%m'))
+    time_range = request.args.get('time_range', 'monthly')
+    selected_savings_month = request.args.get('savings_month', datetime.now().strftime('%Y-%m'))
+    selected_salary = request.args.get('salary_filter', 'all')
 
     # Fetch available categories
     c.execute("SELECT DISTINCT category FROM expenses WHERE user_id = ?", (user_id,))
@@ -533,63 +528,74 @@ def analysis():
     c.execute("SELECT DISTINCT strftime('%Y-%m', date) FROM expenses WHERE user_id = ?", (user_id,))
     months = {row[0]: datetime.strptime(row[0], '%Y-%m').strftime('%B %Y') for row in c.fetchall() if row[0]}
 
-    # Fetch total expenses for the selected month (Pie Chart)
-    c.execute(f"""
+    # Calculate expense breakdown (for pie chart)
+    c.execute("""
         SELECT category, COALESCE(SUM(amount), 0) 
         FROM expenses 
-        WHERE user_id = ? AND {month_filter}
+        WHERE user_id = ? AND strftime('%Y-%m', date) = ?
         GROUP BY category
     """, (user_id, selected_month))
+    expense_breakdown = dict(c.fetchall())
 
-    expense_breakdown_result = c.fetchall()
-    expense_breakdown = {row[0]: row[1] for row in expense_breakdown_result}
+    # Calculate total expenses by category/time range
+    if time_range == 'weekly':
+        date_filter = "date >= date('now', 'weekday 0', '-7 days')"
+    elif time_range == 'monthly':
+        date_filter = "strftime('%Y-%m', date) = strftime('%Y-%m', 'now')"
+    elif time_range == 'quarterly':
+        date_filter = "strftime('%Y-%m', date) BETWEEN strftime('%Y-%m', 'now', 'start of month', '-2 months') AND strftime('%Y-%m', 'now')"
+    elif time_range == 'yearly':
+        date_filter = "strftime('%Y', date) = strftime('%Y', 'now')"
+    else:  # older
+        date_filter = "strftime('%Y-%m', date) < strftime('%Y-%m', 'now')"
 
-    # Fetch total expenses based on category and time range
-    c.execute(f"""
-        SELECT COALESCE(SUM(amount), 0) FROM expenses 
-        WHERE user_id = ? AND {month_filter}
+    query = f"""
+        SELECT COALESCE(SUM(amount), 0) 
+        FROM expenses 
+        WHERE user_id = ? AND {date_filter}
+    """
+    if selected_category:
+        query += f" AND category = '{selected_category}'"
+    
+    c.execute(query, (user_id,))
+    expense_by_category_total = c.fetchone()[0] or 0
+
+    # Calculate savings data
+    c.execute("""
+        SELECT COALESCE(SUM(amount), 0) 
+        FROM expenses 
+        WHERE user_id = ? AND strftime('%Y-%m', date) = ?
     """, (user_id, selected_savings_month))
-
     total_expenses = c.fetchone()[0] or 0
 
     # Fetch available salaries
     c.execute("SELECT DISTINCT amount FROM salaries WHERE user_id = ?", (user_id,))
     salary_list = [row[0] for row in c.fetchall()]
 
-    # Fetch total salary based on selection
+    # Calculate total salary
     if selected_salary == "all":
-        c.execute(f"""
-            SELECT COALESCE(SUM(amount), 0) FROM salaries WHERE user_id = ?
-        """, (user_id,))
+        c.execute("SELECT COALESCE(SUM(amount), 0) FROM salaries WHERE user_id = ?", (user_id,))
     else:
-        c.execute(f"""
-            SELECT COALESCE(SUM(amount), 0) FROM salaries WHERE user_id = ? AND amount = ?
-        """, (user_id, selected_salary))
-
+        c.execute("SELECT COALESCE(SUM(amount), 0) FROM salaries WHERE user_id = ? AND amount = ?", 
+                 (user_id, selected_salary))
     total_salary = c.fetchone()[0] or 0
 
-    # Fetch user's savings percentage
-    c.execute("SELECT savings FROM salaries WHERE user_id = ?", (user_id,))
-    row = c.fetchone()
-    savings_percentage = row[0] if row else 0  # Use 0 if row is None
+    # Get savings percentage
+    c.execute("SELECT savings FROM salaries WHERE user_id = ? LIMIT 1", (user_id,))
+    savings_row = c.fetchone()
+    savings_percentage = savings_row[0] if savings_row else 0
 
-
-    # Calculate required savings
-    required_savings = (total_salary * int(savings_percentage)) / 100
-
-    # Calculate remaining salary after expenses
+    # Calculate savings metrics
+    required_savings = (total_salary * savings_percentage) / 100
     remaining_salary = total_salary - total_expenses
-
-    # Calculate savings status as a percentage
     savings_status = ((remaining_salary - required_savings) / required_savings) * 100 if required_savings > 0 else 0
 
     conn.close()
 
-
     return render_template(
         'analysis.html',
         expense_breakdown=expense_breakdown,
-        expense_by_category_total=int(total_expenses),
+        expense_by_category_total=expense_by_category_total,
         categories=categories,
         selected_category=selected_category,
         selected_month=selected_month,
@@ -601,8 +607,7 @@ def analysis():
         savings_status=savings_status,
         salaries=salary_list,
         selected_salary=selected_salary,
-        selected_savings_month=selected_savings_month,
-        
+        selected_savings_month=selected_savings_month
     )
 
 
