@@ -227,8 +227,12 @@ def expenses():
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Get all distinct categories for the filter dropdown
+    cursor.execute("SELECT DISTINCT category FROM expenses WHERE user_id = ?", (user_id,))
+    categories = [row[0] for row in cursor.fetchall()]
+
     cursor.execute("SELECT id, amount, salary_type FROM salaries WHERE user_id = ?", (user_id,))
-    salaries = cursor.fetchall() 
+    salaries = cursor.fetchall()
 
     # Fetch total expenses count for pagination
     query_count = "SELECT COUNT(*) FROM expenses WHERE user_id = ?"
@@ -265,9 +269,10 @@ def expenses():
         expenses=expenses,
         page=page,
         total_pages=total_pages,
-        category=category,
-        date=date,
-        salaries=salaries
+        selected_category=category,  # Changed from 'category' to 'selected_category'
+        selected_date=date,         # Changed from 'date' to 'selected_date'
+        salaries=salaries,
+        categories=categories       # Added this line
     )
 
 
@@ -431,7 +436,6 @@ import re
 from PIL import Image
 from flask import Flask, request, jsonify
 
-# Set the Tesseract OCR path (if not set in PATH)
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # Patterns to identify the total amount in different formats
@@ -458,14 +462,13 @@ def extract_total_amount(text):
     for pattern in total_patterns:
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            return match.group(2).replace(",", "")  # Remove commas from amounts
+            return match.group(2).replace(",", "")  
     return None
 
 def extract_date(text):
     """Extracts date from the start or end of the extracted text."""
     lines = text.split("\n")  # Split text into lines
 
-    # Search in the first 5 and last 5 lines (common date locations)
     relevant_lines = lines[:5] + lines[-5:]
     for line in relevant_lines:
         for pattern in date_patterns:

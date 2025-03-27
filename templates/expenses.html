@@ -7,33 +7,33 @@ Expenses - Trackonomy
 {% block content %}
 
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
 <style>
     /* Popup window styling */
     .popup {
-    display: none;  /* Ensures it starts hidden */
-    position: fixed;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 400px;
-    max-height: 80vh;
-    overflow-y: auto;
-    background-color: rgba(0, 0, 0, 0.5)
-}
+        display: none;
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 400px;
+        max-height: 80vh;
+        overflow-y: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+    }
 
-
-.popup-content {
-    max-height: 80vh; /* This shouldn't force visibility */
-    overflow-y: auto;
-    background: #FBF6E9;
-    padding: 20px;
-    width: 400px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    position: relative;
-}
-
+    .popup-content {
+        max-height: 80vh;
+        overflow-y: auto;
+        background: #FBF6E9;
+        padding: 20px;
+        width: 400px;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        position: relative;
+    }
 
     .close {
         position: absolute;
@@ -44,8 +44,6 @@ Expenses - Trackonomy
         color: #333;
     }
 
-    
-
     .btn-danger {
         background-color: #dc3545;
         border: none;
@@ -54,38 +52,51 @@ Expenses - Trackonomy
     .btn-danger:hover {
         background-color: #c82333;
     }
+
     .pagination {
-    display: flex;
-    list-style: none;
-    padding: 0;
+        display: flex;
+        list-style: none;
+        padding: 0;
+        justify-content: center;
     }
 
     .page-item {
-    margin: 0 5px;
+        margin: 0 5px;
     }   
 
     .page-link {
-    padding: 8px 15px;
-    text-decoration: none;
-    border-radius: 5px;
-    border: 1px solid #5DB996;
-    color: #5DB996;
-    transition: all 0.3s ease;
+        padding: 8px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        border: 1px solid #5DB996;
+        color: #5DB996;
+        transition: all 0.3s ease;
     }
 
     .page-link:hover {
-    background-color: #5DB996;
-    color: white;
+        background-color: #5DB996;
+        color: white;
     }
 
     .page-item.active .page-link {
-    background-color: #118B50;
-    color: white;
-    border: none;
-    cursor: default;
+        background-color: #118B50;
+        color: white;
+        border: none;
+        cursor: default;
+    }
+
+    .clear-filters-btn {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+
+    .filter-row {
+        margin-bottom: 20px;
     }
     
-
+    .table-responsive {
+        margin-bottom: 20px;
+    }
 </style>
 
 <div class="container mt-4">
@@ -97,45 +108,35 @@ Expenses - Trackonomy
             <i class="fas fa-plus"></i> Add Transaction
         </button>
     </div>
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label for="categoryFilter" class="form-label">Filter by Category:</label>
-            <select id="categoryFilter" class="form-select" onchange="applyFilters()">
-                <option value="">All Categories</option>
-                <option value="Food">Food</option>
-                <option value="Grocery">Grocery</option>
-                <option value="Rent">Rent</option>
-                <option value="Medical Expense">Medical</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Travel expenses">Travel</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Others">Others</option>
-            </select>
-        </div>
-        <div class="col-md-4">
-            <label for="dateFilter" class="form-label">Filter by Date:</label>
-            <input type="date" id="dateFilter" class="form-control" onchange="applyFilters()">
-        </div>
+
+  <!-- Filter Section -->
+<div class="row filter-row">
+    <div class="col-md-4">
+        <label for="categoryFilter" class="form-label">Filter by Category:</label>
+        <select id="categoryFilter" class="form-select" onchange="applyFilters()">
+            <option value="">All Categories</option>
+            {% for category in categories %}
+                <option value="{{ category }}" {% if category == selected_category %}selected{% endif %}>
+                    {{ category }}
+                </option>
+            {% endfor %}
+        </select>
     </div>
-    
-    <script>
-        function applyFilters() {
-            const category = document.getElementById("categoryFilter").value;
-            const date = document.getElementById("dateFilter").value;
-    
-            const url = new URL(window.location.href);
-            url.searchParams.set("category", category);
-            url.searchParams.set("date", date);
-            url.searchParams.set("page", 1); // Reset to first page when filtering
-    
-            window.location.href = url.toString(); // Redirect with updated filters
-        }
-    </script>
+    <div class="col-md-4">
+        <label for="dateFilter" class="form-label">Filter by Date:</label>
+        <input type="date" id="dateFilter" class="form-control" value="{{ selected_date }}" onchange="applyFilters()">
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button class="btn btn-outline-secondary clear-filters-btn" onclick="clearFilters()">
+            <i class="fas fa-times"></i> Clear
+        </button>
+    </div>
+</div>
     
     <!-- Expenses Table -->
     <div class="table-responsive">
-        <table class="table table-hover shadow rounded" style="background-color: #FBF6E9;">
-            <thead style="background-color: #E3F0AF; color: #333;">
+        <table class="table table-hover shadow rounded">
+            <thead class="table-light">
                 <tr>
                     <th>Date</th>
                     <th>Category</th>
@@ -147,52 +148,54 @@ Expenses - Trackonomy
             </thead>
             <tbody>
                 {% if expenses %}
-                {% for expense in expenses %}
-                    <tr>
-                        <td>{{ expense[4] }}</td> 
-                        <td>{{ expense[3] }}</td> 
-                        <td>₹{{ expense[2] }}</td> 
-                        <td>{{ expense[6] }}</td> 
-                        <td>{{ expense[5] }}</td> 
-                        <td>
-                            <form action="{{ url_for('delete_transaction', transaction_id=expense[0]) }}" method="post">
-                                <button type="submit" class="btn btn-danger">
-                                    <i class="fas fa-trash-alt"></i>
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
+                    {% for expense in expenses %}
+                        <tr>
+                            <td>{{ expense.date }}</td>
+                            <td>{{ expense.category }}</td>
+                            <td>₹{{ expense.amount }}</td>
+                            <td>{{ expense.payment_method }}</td>
+                            <td>{{ expense.notes }}</td>
+                            <td>
+                                <form action="{{ url_for('delete_transaction', transaction_id=expense.id) }}" method="post">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
                 {% else %}
                     <tr>
-                        <td colspan="6" class="text-center">No expenses available.</td>
+                        <td colspan="6" class="text-center">No expenses found{% if selected_category or selected_date %} matching your filters{% endif %}.</td>
                     </tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
+
+    <!-- Simplified Pagination -->
+    {% if expenses %}
+    <nav>
+        <ul class="pagination">
+            {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('expenses', page=page-1, category=selected_category, date=selected_date) }}">
+                        &laquo; Previous
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('expenses', page=page+1, category=selected_category, date=selected_date) }}">
+                        Next &raquo;
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
 </div>
-<!-- Pagination -->
-<nav>
-    <ul class="pagination justify-content-center">
-        {% if page > 1 %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('expenses', page=page-1, category=request.args.get('category', ''), date=request.args.get('date', '')) }}">Previous</a>
-            </li>
-        {% endif %}
-        
-        <li class="page-item active">
-            <span class="page-link">{{ page }}</span>
-        </li>
-
-        {% if page < total_pages %}
-            <li class="page-item">
-                <a class="page-link" href="{{ url_for('expenses', page=page+1, category=request.args.get('category', ''), date=request.args.get('date', '')) }}">Next</a>
-            </li>
-        {% endif %}
-    </ul>
-</nav>
-
 
 <!-- Popup Window for Adding Transaction -->
 <div id="popup" class="popup">
@@ -272,111 +275,88 @@ Expenses - Trackonomy
 </div>
 
 <script>
-document.getElementById("receipt").addEventListener("change", function(event) {
-    let file = event.target.files[0];
+    // Initialize filters from URL parameters
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const category = urlParams.get('category');
+        const date = urlParams.get('date');
 
-    if (file) {
-        let formData = new FormData();
-        formData.append("file", file);
+        if (category) {
+            document.getElementById('categoryFilter').value = category;
+        }
+        if (date) {
+            document.getElementById('dateFilter').value = date;
+        }
 
-        fetch("{{ url_for('upload_receipt') }}", {
-            method: "POST",
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.amount) {
-                document.getElementById("amount").value = data.amount;
-            }
-            if (data.date) {
-                let formattedDate = formatDateForInput(data.date);
-                document.getElementById("date").value = formattedDate;
-            }
-        })
-        .catch(error => console.error("Error:", error));
-    }
-
-});
-
-// Function to convert date to YYYY-MM-DD format
-function formatDateForInput(dateString) {
-    if (!dateString || dateString.toLowerCase() === "not found") {
-        return "";  // Return empty if no valid date found
-    }
-
-    let dateParts = dateString.match(/\d+/g);  // Extract numeric parts from date
-    if (!dateParts || dateParts.length < 3) {
-        return "";  // Invalid date
-    }
-
-    let year, month, day;
-    
-    if (dateParts[2].length === 2) {
-        year = "20" + dateParts[2];  // Convert YY to YYYY
-    } else {
-        year = dateParts[2];
-    }
-
-    month = dateParts[0].padStart(2, "0");  // Ensure two digits
-    day = dateParts[1].padStart(2, "0");
-
-    return `${year}-${month}-${day}`;  // Convert to YYYY-MM-DD
-}
-
-</script>
-
-
-
-<script>
-    // Open Popup
-    function openPopup() {
-        document.getElementById("popup").style.display = "block";
-    }
-
-    // Close Popup
-    function closePopup() {
-        document.getElementById("popup").style.display = "none";
-    }
-</script>
-<script>
-function applyFilters() {
-    function applyFilters() {
-    let category = document.getElementById("categoryFilter").value;
-    let date = document.getElementById("dateFilter").value;
-
-    // Construct the new URL with page=1
-    let newUrl = new URL(window.location.href);
-    newUrl.searchParams.set("page", 1); // Reset to first page
-
-    // Only set parameters if they are not empty
-    if (category) {
-        newUrl.searchParams.set("category", category);
-    } else {
-        newUrl.searchParams.delete("category");
-    }
-
-    if (date) {
-        newUrl.searchParams.set("date", date);
-    } else {
-        newUrl.searchParams.delete("date");
-    }
-
-    // Redirect to the updated URL
-    window.location.href = newUrl.toString();
-}
-}
-</script>
-<script>
-    function applyFilters() {
-        let category = document.getElementById('categoryFilter').value;
-        let date = document.getElementById('dateFilter').value;
+        // Add event listeners for filter changes
+        document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+        document.getElementById('dateFilter').addEventListener('change', applyFilters);
         
-        let url = new URL(window.location.href);
+        // Initialize receipt upload functionality
+        document.getElementById("receipt").addEventListener("change", function(event) {
+            let file = event.target.files[0];
+
+            if (file) {
+                let formData = new FormData();
+                formData.append("file", file);
+
+                fetch("{{ url_for('upload_receipt') }}", {
+                    method: "POST",
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.amount) {
+                        document.getElementById("amount").value = data.amount;
+                    }
+                    if (data.date) {
+                        let formattedDate = formatDateForInput(data.date);
+                        document.getElementById("date").value = formattedDate;
+                    }
+                })
+                .catch(error => console.error("Error:", error));
+            }
+        });
+    });
+
+    // Function to convert date to YYYY-MM-DD format
+    function formatDateForInput(dateString) {
+        if (!dateString || dateString.toLowerCase() === "not found") {
+            return "";  // Return empty if no valid date found
+        }
+
+        let dateParts = dateString.match(/\d+/g);  // Extract numeric parts from date
+        if (!dateParts || dateParts.length < 3) {
+            return "";  // Invalid date
+        }
+
+        let year, month, day;
+        
+        if (dateParts[2].length === 2) {
+            year = "20" + dateParts[2];  // Convert YY to YYYY
+        } else {
+            year = dateParts[2];
+        }
+
+        month = dateParts[0].padStart(2, "0");  // Ensure two digits
+        day = dateParts[1].padStart(2, "0");
+
+        return `${year}-${month}-${day}`;  // Convert to YYYY-MM-DD
+    }
+
+    function applyFilters() {
+        const category = document.getElementById('categoryFilter').value;
+        const date = document.getElementById('dateFilter').value;
+        
+        const url = new URL(window.location);
+        url.searchParams.set('page', '1'); // Reset to first page
+        
         if (category) {
             url.searchParams.set('category', category);
         } else {
             url.searchParams.delete('category');
         }
+        
         if (date) {
             url.searchParams.set('date', date);
         } else {
@@ -384,6 +364,28 @@ function applyFilters() {
         }
         
         window.location.href = url.toString();
+    }
+
+    function clearFilters() {
+        // Clear the filter inputs
+        document.getElementById('categoryFilter').value = '';
+        document.getElementById('dateFilter').value = '';
+        
+        // Redirect to URL without filter parameters
+        const url = new URL(window.location);
+        url.searchParams.delete('category');
+        url.searchParams.delete('date');
+        url.searchParams.set('page', '1');
+        window.location.href = url.toString();
+    }
+
+    // Popup functions
+    function openPopup() {
+        document.getElementById('popup').style.display = 'block';
+    }
+
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
     }
 </script>
 
